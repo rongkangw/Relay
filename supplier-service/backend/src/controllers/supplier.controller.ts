@@ -149,8 +149,18 @@ export class SupplierController {
       })
 
       res.status(201).json({ supplier: supplier })
-    } catch (error) {
-      next(error)
+    } catch (error: any) {
+      if (error?.message === SupplierErrors.DUPLICATE_SUPPLIER) {
+        res.status(409).json({
+          code: SupplierErrors.DUPLICATE_SUPPLIER,
+          message: 'A supplier with this name already exists at this location',
+        })
+        return
+      }
+      res.status(500).json({
+        code: SupplierErrors.INTERNAL_ERROR,
+        message: 'An unexpected error occurred',
+      })
     }
   }
 

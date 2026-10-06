@@ -1,5 +1,8 @@
 import { Pool } from 'pg'
 import type { SupplierRow } from './types/supplier.types'
+import { SupplierErrors } from '@relay/contracts'
+
+const POSTGRES_UNIQUE_VIOLATION = '23505'
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -30,11 +33,18 @@ export async function createSupplier(
   operatingHours: string,
   serviceTypes: number[],
 ): Promise<SupplierRow[]> {
-  return query<SupplierRow>(
-    `INSERT INTO suppliers (name, location, is_operational, operating_hours, service_types)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [name, location, isOperational, operatingHours, serviceTypes],
-  )
+  try {
+    return await query<SupplierRow>(
+      `INSERT INTO suppliers (name, location, is_operational, operating_hours, service_types)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [name, location, isOperational, operatingHours, serviceTypes],
+    )
+  } catch (error: any) {
+    if (error?.code === POSTGRES_UNIQUE_VIOLATION) {
+      throw new Error(SupplierErrors.DUPLICATE_SUPPLIER)
+    }
+    throw error
+  }
 }
 
 export async function updateSupplier(

@@ -1,4 +1,4 @@
-import type { Supplier } from '@relay/contracts/supplier'
+import { SupplierErrors, type Supplier } from '@relay/contracts/supplier'
 import { SupplierRepository } from '../repositories/supplier.repository'
 
 export class SupplierService {
@@ -40,13 +40,20 @@ export class SupplierService {
       throw new Error('serviceTypes is required')
     }
 
-    return await this.repository.create({
-      name: data.name,
-      location: data.location,
-      isOperational: data.isOperational,
-      operatingHours: data.operatingHours,
-      serviceTypes: data.serviceTypes,
-    })
+    try {
+      return await this.repository.create({
+        name: data.name,
+        location: data.location,
+        isOperational: data.isOperational,
+        operatingHours: data.operatingHours,
+        serviceTypes: data.serviceTypes,
+      })
+    } catch (error: any) {
+      if (error?.message === SupplierErrors.DUPLICATE_SUPPLIER) {
+        throw new Error(SupplierErrors.DUPLICATE_SUPPLIER)
+      }
+      throw new Error(SupplierErrors.INTERNAL_ERROR)
+    }
   }
 
   async updateSupplier(
