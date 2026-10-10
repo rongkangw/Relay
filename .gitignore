@@ -6,6 +6,8 @@ node_modules/
 
 # Diagnostics
 .mf/
+.postman/
+postman/
 
 # Environment / secrets
 .env

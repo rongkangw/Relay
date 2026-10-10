@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from 'express'
 import { SupplierErrors } from '@relay/contracts/supplier'
 import type { ApiResult, ValidateSessionResponse } from '@relay/contracts/user'
 import { SupplierService } from '../services/supplier.service'
+import { validateLocation, validateOperatingHours, validateServiceTypes } from '../validators/supplier.validator'
 
 const USER_API_URL = process.env.USER_API_URL || 'http://user-api:3000'
 const USER_API_TIMEOUT = parseInt(process.env.USER_API_TIMEOUT || '5000', 10)
@@ -111,14 +112,8 @@ export class SupplierController {
 
       const { name, location, isOperational, operatingHours, serviceTypes } = req.body
 
-      if (!name || typeof name !== 'string') {
+      if (!name || typeof name !== 'string' || name.trim() === '') {
         res.status(400).json({ code: SupplierErrors.INVALID_REQUEST, message: 'Name is required' })
-        return
-      }
-      if (!location || typeof location !== 'object') {
-        res
-          .status(400)
-          .json({ code: SupplierErrors.INVALID_REQUEST, message: 'Location is required' })
         return
       }
       if (typeof isOperational !== 'boolean') {
@@ -127,16 +122,22 @@ export class SupplierController {
           .json({ code: SupplierErrors.INVALID_REQUEST, message: 'isOperational is required' })
         return
       }
-      if (!operatingHours || typeof operatingHours !== 'object') {
-        res
-          .status(400)
-          .json({ code: SupplierErrors.INVALID_REQUEST, message: 'OperatingHours is required' })
+
+      const locationError = validateLocation(location)
+      if (locationError) {
+        res.status(400).json({ code: SupplierErrors.INVALID_REQUEST, message: locationError })
         return
       }
-      if (!Array.isArray(serviceTypes) || serviceTypes.length === 0) {
-        res
-          .status(400)
-          .json({ code: SupplierErrors.INVALID_REQUEST, message: 'serviceTypes is required' })
+
+      const operatingHoursError = validateOperatingHours(operatingHours)
+      if (operatingHoursError) {
+        res.status(400).json({ code: SupplierErrors.INVALID_REQUEST, message: operatingHoursError })
+        return
+      }
+
+      const serviceTypesError = validateServiceTypes(serviceTypes)
+      if (serviceTypesError) {
+        res.status(400).json({ code: SupplierErrors.INVALID_REQUEST, message: serviceTypesError })
         return
       }
 
@@ -149,8 +150,18 @@ export class SupplierController {
       })
 
       res.status(201).json({ supplier: supplier })
-    } catch (error) {
-      next(error)
+    } catch (error: any) {
+      if (error?.message === SupplierErrors.DUPLICATE_SUPPLIER) {
+        res.status(409).json({
+          code: SupplierErrors.DUPLICATE_SUPPLIER,
+          message: 'A supplier with this name already exists at this location',
+        })
+        return
+      }
+      res.status(500).json({
+        code: SupplierErrors.INTERNAL_ERROR,
+        message: 'An unexpected error occurred',
+      })
     }
   }
 

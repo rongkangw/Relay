@@ -6,6 +6,7 @@ export const SupplierErrors = {
   SESSION_EXPIRED: 'SESSION_EXPIRED',
   INVALID_REQUEST: 'INVALID_REQUEST',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  DUPLICATE_SUPPLIER: 'DUPLICATE_SUPPLIER',
 } as const
 
 export type SupplierErrorCode = (typeof SupplierErrors)[keyof typeof SupplierErrors]

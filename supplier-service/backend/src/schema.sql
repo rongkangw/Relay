@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS suppliers (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Unique constraint for supplier idempotency:
+-- Same normalized name (case-insensitive, trimmed) + same lat + same lng = duplicate
+CREATE UNIQUE INDEX IF NOT EXISTS idx_suppliers_unique_identity
+ON suppliers (
+  LOWER(TRIM(name)),
+  ((location->>'lat')::numeric),
+  ((location->>'lng')::numeric)
+);
+
 -- Trigger to update timestamp on row change
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$

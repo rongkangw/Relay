@@ -1,5 +1,6 @@
-import type { Supplier } from '@relay/contracts/supplier'
+import { SupplierErrors, type Supplier } from '@relay/contracts/supplier'
 import { SupplierRepository } from '../repositories/supplier.repository'
+
 
 export class SupplierService {
   constructor(private readonly repository: SupplierRepository) {}
@@ -19,34 +20,20 @@ export class SupplierService {
     operatingHours: Supplier['operatingHours']
     serviceTypes: Supplier['serviceTypes']
   }): Promise<Supplier> {
-    // Validate required fields
-    if (!data.name || data.name.trim() === '') {
-      throw new Error('Name is required')
+    try {
+      return await this.repository.create({
+        name: data.name,
+        location: data.location,
+        isOperational: data.isOperational,
+        operatingHours: data.operatingHours,
+        serviceTypes: data.serviceTypes,
+      })
+    } catch (error: any) {
+      if (error?.message === SupplierErrors.DUPLICATE_SUPPLIER) {
+        throw new Error(SupplierErrors.DUPLICATE_SUPPLIER)
+      }
+      throw new Error(SupplierErrors.INTERNAL_ERROR)
     }
-
-    if (!data.location) {
-      throw new Error('Location is required')
-    }
-
-    if (typeof data.isOperational !== 'boolean') {
-      throw new Error('isOperational is required')
-    }
-
-    if (!data.operatingHours) {
-      throw new Error('OperatingHours is required')
-    }
-
-    if (!Array.isArray(data.serviceTypes) || data.serviceTypes.length === 0) {
-      throw new Error('serviceTypes is required')
-    }
-
-    return await this.repository.create({
-      name: data.name,
-      location: data.location,
-      isOperational: data.isOperational,
-      operatingHours: data.operatingHours,
-      serviceTypes: data.serviceTypes,
-    })
   }
 
   async updateSupplier(
